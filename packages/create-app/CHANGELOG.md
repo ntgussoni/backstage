@@ -1,5 +1,51 @@
 # @backstage/create-app
 
+## 0.3.15
+
+### Patch Changes
+
+- 2c525f85e: (fix) Adds locationAnalyzer to default-app template
+
+  The locationAnalyzer was missing from the default-app template.
+  This resulted in 404 errors in newly bootstrapped backstage applications,
+  when adding components without configuration.
+
+  To fix this in an existing backstage application, the locationAnalyzer needs
+  to be carried from the builder to the router in the
+  `packages/backend/src/plugins/catalog.ts` file.
+
+  ```diff
+     const builder = new CatalogBuilder(env);
+     const {
+       entitiesCatalog,
+       locationsCatalog,
+       higherOrderOperation,
+  +    locationAnalyzer,
+     } = await builder.build();
+     // ...
+     return await createRouter({
+       entitiesCatalog,
+       locationsCatalog,
+       higherOrderOperation,
+  +    locationAnalyzer,
+       logger: env.logger,
+     });
+  ```
+
+- Updated dependencies [9f2e51e89]
+- Updated dependencies [fcc3ada24]
+- Updated dependencies [687f066e1]
+- Updated dependencies [2aab54319]
+- Updated dependencies [113d3d59e]
+- Updated dependencies [4618774ff]
+- Updated dependencies [c862b3f36]
+  - @backstage/plugin-scaffolder-backend@0.9.3
+  - @backstage/core@0.7.3
+  - @backstage/plugin-catalog@0.5.1
+  - @backstage/plugin-techdocs@0.6.3
+  - @backstage/theme@0.2.5
+  - @backstage/plugin-catalog-backend@0.6.7
+
 ## 0.3.14
 
 ### Patch Changes

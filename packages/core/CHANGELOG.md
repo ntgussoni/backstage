@@ -1,5 +1,14 @@
 # @backstage/core
 
+## 0.7.3
+
+### Patch Changes
+
+- fcc3ada24: Reuse ResponseErrorList for non ResponseErrors
+- 4618774ff: Changed color for Add Item, Support & Choose buttons with low contrast/readability in dark mode
+- Updated dependencies [4618774ff]
+  - @backstage/theme@0.2.5
+
 ## 0.7.2
 
 ### Patch Changes

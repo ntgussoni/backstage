@@ -1,5 +1,15 @@
 # @backstage/plugin-techdocs
 
+## 0.6.3
+
+### Patch Changes
+
+- 2aab54319: TechDocs: links at sidebar and bottom reset scroll position to top
+- Updated dependencies [fcc3ada24]
+- Updated dependencies [4618774ff]
+  - @backstage/core@0.7.3
+  - @backstage/theme@0.2.5
+
 ## 0.6.2
 
 ### Patch Changes

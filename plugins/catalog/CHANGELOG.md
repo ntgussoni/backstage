@@ -1,5 +1,17 @@
 # @backstage/plugin-catalog
 
+## 0.5.1
+
+### Patch Changes
+
+- 687f066e1: Add icon for entity badge menu
+- Updated dependencies [687f066e1]
+- Updated dependencies [fcc3ada24]
+- Updated dependencies [4618774ff]
+  - @backstage/plugin-badges@0.1.2
+  - @backstage/core@0.7.3
+  - @backstage/theme@0.2.5
+
 ## 0.5.0
 
 ### Minor Changes

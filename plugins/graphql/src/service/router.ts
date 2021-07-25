@@ -22,8 +22,10 @@ import fs from 'fs';
 import { GraphQLModule } from '@graphql-modules/core';
 import { ApolloServer } from 'apollo-server-express';
 import { createModule as createCatalogModule } from '@backstage/plugin-catalog-graphql';
+
 import { Config } from '@backstage/config';
 import helmet from 'helmet';
+import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
 
 const schemaPath = resolvePackagePath(
   '@backstage/plugin-graphql-backend',
@@ -37,10 +39,11 @@ export interface RouterOptions {
 
 export async function createRouter(
   options: RouterOptions,
+  build: NextCatalogBuild,
 ): Promise<express.Router> {
   const typeDefs = await fs.promises.readFile(schemaPath, 'utf-8');
 
-  const catalogModule = await createCatalogModule(options);
+  const catalogModule = await createCatalogModule(options, build);
 
   const { schema } = new GraphQLModule({
     imports: [catalogModule],
@@ -74,6 +77,6 @@ export async function createRouter(
   router.use(apolloMiddleware);
 
   router.use(errorHandler());
-
   return router;
 }
+module.hot?.accept();

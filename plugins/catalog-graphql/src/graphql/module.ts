@@ -15,14 +15,13 @@
  */
 
 import { Logger } from 'winston';
-import { makeExecutableSchema } from 'apollo-server';
 import { GraphQLModule } from '@graphql-modules/core';
-import { Resolvers, CatalogQuery } from './types';
 import { Config } from '@backstage/config';
-import { CatalogClient } from '../service/client';
-import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
-import { Entity } from '@backstage/catalog-model';
-import typeDefs from '../schema';
+import { schemaComposer } from 'graphql-compose';
+
+import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
+import { ObjectBuilder } from '../field-parser';
+import { fieldMerger } from '../merger/field-merger';
 
 export interface ModuleOptions {
   logger: Logger;
@@ -31,74 +30,40 @@ export interface ModuleOptions {
 
 export async function createModule(
   options: ModuleOptions,
+  build: NextCatalogBuild,
 ): Promise<GraphQLModule> {
-  const catalogClient = new CatalogClient(
-    options.config.getString('backend.baseUrl'),
-  );
+  const { entitiesCatalog } = build;
 
-  const resolvers: Resolvers = {
-    JSON: GraphQLJSON,
-    JSONObject: GraphQLJSONObject,
-    DefaultEntitySpec: {
-      raw: rootValue => {
-        const { entity } = rootValue as { entity: Entity };
-        return entity.spec ?? null;
-      },
-    },
-    Query: {
-      catalog: () => ({} as CatalogQuery),
-    },
-    CatalogQuery: {
-      list: async () => {
-        return await catalogClient.list();
-      },
-    },
-    CatalogEntity: {
-      metadata: entity => ({ ...entity.metadata!, entity }),
-      spec: entity => ({ ...entity.spec!, entity }),
-    },
-    EntityMetadata: {
-      __resolveType: rootValue => {
-        const {
-          entity: { kind },
-        } = rootValue as { entity: Entity };
-        switch (kind) {
-          case 'Component':
-            return 'ComponentMetadata';
-          case 'Template':
-            return 'TemplateMetadata';
-          default:
-            return 'DefaultEntityMetadata';
-        }
-      },
-      annotation: (e, { name }) => e.annotations?.[name] ?? null,
-      labels: e => e.labels ?? {},
-      annotations: e => e.annotations ?? {},
-      label: (e, { name }) => e.labels?.[name] ?? null,
-    },
-    EntitySpec: {
-      __resolveType: rootValue => {
-        const {
-          entity: { kind },
-        } = rootValue as { entity: Entity };
+  const {
+    entities: UNSTABLE_catalogEntities,
+  } = await entitiesCatalog.entities();
 
-        switch (kind) {
-          case 'Component':
-            return 'ComponentEntitySpec';
-          case 'Template':
-            return 'TemplateEntitySpec';
-          default:
-            return 'DefaultEntitySpec';
-        }
-      },
-    },
-  };
+  const mergedObj = fieldMerger(...UNSTABLE_catalogEntities);
 
-  const schema = makeExecutableSchema({
-    typeDefs,
-    resolvers,
-    inheritResolversFromInterfaces: true,
+  const EntitiesTC = new ObjectBuilder({
+    name: 'Entity',
+    obj: mergedObj,
+  }).build();
+
+  EntitiesTC.addResolver({
+    kind: 'query',
+    name: 'findMany',
+    args: {
+      skip: 'Int',
+      limit: 'Int',
+    },
+    type: [EntitiesTC],
+    resolve: async () => {
+      const { entities } = await entitiesCatalog.entities();
+      return entities;
+    },
   });
+
+  schemaComposer.Query.addFields({
+    entities: EntitiesTC.getResolver('findMany'),
+  });
+
+  const schema = schemaComposer.buildSchema();
 
   const module = new GraphQLModule({
     extraSchemas: [schema],
@@ -107,3 +72,5 @@ export async function createModule(
 
   return module;
 }
+
+module.hot?.accept();

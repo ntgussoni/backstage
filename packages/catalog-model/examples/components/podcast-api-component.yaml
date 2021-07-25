@@ -3,6 +3,9 @@ kind: Component
 metadata:
   name: podcast-api
   description: Podcast API
+  foo:
+    something: random
+    another-thing: nope
   tags:
     - java
 spec:

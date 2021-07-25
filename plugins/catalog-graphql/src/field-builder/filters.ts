@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Backstage Authors
+ * Copyright 2021 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import sift from 'sift';
 
-import { createRouter } from '@backstage/plugin-graphql-backend';
-import { Router } from 'express';
-import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
-import { PluginEnvironment } from '../types';
+function operatorsToSift(operators) {
+  return Object.entries(operators).reduce(
+    (acc, [operator, value]) => ({
+      ...acc,
+      [`$${operator}`]: value,
+    }),
+    {},
+  );
+}
 
-export default async function createPlugin(
-  { logger, config }: PluginEnvironment,
-  build: NextCatalogBuild,
-): Promise<Router> {
-  return await createRouter(
-    {
-      logger,
-      config,
-    },
-    build,
+export function filterToSift(filter = {}) {
+  return sift(
+    Object.entries(filter).reduce(
+      (acc, [key, operators]) => ({
+        ...acc,
+        [key]: operatorsToSift(operators),
+      }),
+      {},
+    ),
   );
 }

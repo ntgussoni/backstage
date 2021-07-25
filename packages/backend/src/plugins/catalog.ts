@@ -17,28 +17,33 @@
 import {
   CatalogBuilder,
   createRouter,
+  NextCatalogBuild,
 } from '@backstage/plugin-catalog-backend';
 import { Router } from 'express';
 import { PluginEnvironment } from '../types';
 
 export default async function createPlugin(
   env: PluginEnvironment,
-): Promise<Router> {
+): Promise<{ build: NextCatalogBuild; route: Router }> {
   const builder = await CatalogBuilder.create(env);
+  const build = await builder.build();
+
   const {
     entitiesCatalog,
     locationAnalyzer,
     processingEngine,
     locationService,
-  } = await builder.build();
-
+  } = build;
   await processingEngine.start();
 
-  return await createRouter({
-    entitiesCatalog,
-    locationAnalyzer,
-    locationService,
-    logger: env.logger,
-    config: env.config,
-  });
+  return {
+    build,
+    route: await createRouter({
+      entitiesCatalog,
+      locationAnalyzer,
+      locationService,
+      logger: env.logger,
+      config: env.config,
+    }),
+  };
 }

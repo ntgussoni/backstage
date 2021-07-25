@@ -133,3 +133,4 @@ site
 
 # Sensitive credentials
 *-credentials.yaml
+.history

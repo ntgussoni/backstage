@@ -26,6 +26,7 @@ import {
   graphQlBrowseApiRef,
   GraphQLEndpoints,
 } from '@backstage/plugin-graphiql';
+
 import {
   AnyApiFactory,
   configApiRef,
@@ -46,6 +47,11 @@ export const apis: AnyApiFactory[] = [
     deps: { errorApi: errorApiRef, githubAuthApi: githubAuthApiRef },
     factory: ({ errorApi, githubAuthApi }) =>
       GraphQLEndpoints.from([
+        GraphQLEndpoints.create({
+          id: 'catalog',
+          title: 'catalog',
+          url: 'http://localhost:7000/api/graphql',
+        }),
         GraphQLEndpoints.create({
           id: 'gitlab',
           title: 'GitLab',

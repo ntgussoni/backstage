@@ -105,7 +105,8 @@ async function main() {
   const jenkinsEnv = useHotMemoize(module, () => createEnv('jenkins'));
 
   const apiRouter = Router();
-  apiRouter.use('/catalog', await catalog(catalogEnv));
+  const { build, route: catalogRoute } = await catalog(catalogEnv);
+  apiRouter.use('/catalog', catalogRoute);
   apiRouter.use('/code-coverage', await codeCoverage(codeCoverageEnv));
   apiRouter.use('/rollbar', await rollbar(rollbarEnv));
   apiRouter.use('/scaffolder', await scaffolder(scaffolderEnv));
@@ -116,7 +117,7 @@ async function main() {
   apiRouter.use('/kubernetes', await kubernetes(kubernetesEnv));
   apiRouter.use('/kafka', await kafka(kafkaEnv));
   apiRouter.use('/proxy', await proxy(proxyEnv));
-  apiRouter.use('/graphql', await graphql(graphqlEnv));
+  apiRouter.use('/graphql', await graphql(graphqlEnv, build));
   apiRouter.use('/badges', await badges(badgesEnv));
   apiRouter.use('/jenkins', await jenkins(jenkinsEnv));
   apiRouter.use(notFoundHandler());

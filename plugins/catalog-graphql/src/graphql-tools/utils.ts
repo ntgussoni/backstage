@@ -13,18 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  GraphQLEnumType,
-  GraphQLScalarType,
-  isSpecifiedScalarType,
-} from 'graphql';
-import {
-  GraphQLDate,
-  GraphQLJSON,
-  InputTypeComposer,
-  SchemaComposer,
-} from 'graphql-compose';
-import { isObject } from 'lodash';
+
+import { isObject, upperFirst } from 'lodash';
 import sift from 'sift';
 
 const EQ = `eq`;
@@ -38,7 +28,7 @@ const NIN = `nin`;
 const REGEX = `regex`;
 // const GLOB = `glob`; need to add support to sift
 
-const ALLOWED_OPERATORS = {
+export const ALLOWED_OPERATORS = {
   Boolean: [EQ, NE, IN, NIN],
   Date: [EQ, NE, GT, GTE, LT, LTE, IN, NIN],
   Float: [EQ, NE, GT, GTE, LT, LTE, IN, NIN],
@@ -50,55 +40,34 @@ const ALLOWED_OPERATORS = {
   CustomScalar: [EQ, NE, IN, NIN],
 };
 
-type TypeName = keyof typeof ALLOWED_OPERATORS;
+export type TypeName = keyof typeof ALLOWED_OPERATORS;
+export const ARRAY_OPERATORS = [IN, NIN];
+export const NON_ALPHA_NUMERIC_EXPR = /[^_0-9A-Za-z]+/g;
 
-const ARRAY_OPERATORS = [IN, NIN];
-
-const getOperatorFields = (
-  fieldType: string,
-  operators: Array<string>,
-): Record<string, string | Array<string>> => {
-  const result: { [key in string]: any } = {};
-  operators.forEach(op => {
-    if (ARRAY_OPERATORS.includes(op)) {
-      result[op] = [fieldType];
-    } else {
-      result[op] = fieldType;
-    }
-  });
-  return result;
+export const createTypeName = (selector: string) => {
+  const keys = selector.split(`.`);
+  const suffix = keys.slice(1).map(upperFirst).join(``);
+  return `${keys[0]}${suffix}`;
 };
 
-const isBuiltInScalarType = (type: any): type is GraphQLScalarType =>
-  isSpecifiedScalarType(type) || type === GraphQLDate || type === GraphQLJSON;
+/**
+ * GraphQL field names must be a string and cannot contain anything other than
+ * alphanumeric characters and `_`.
+ */
+export const createFieldName = (name: string) => {
+  const replaced = name.replace(NON_ALPHA_NUMERIC_EXPR, `_`);
 
-export const getQueryOperatorInput = ({
-  schemaComposer,
-  type,
-}: {
-  schemaComposer: SchemaComposer;
-  type: any;
-}): InputTypeComposer => {
-  let typeName: TypeName;
-
-  if (type instanceof GraphQLEnumType) {
-    typeName = `Enum`;
-  } else if (isBuiltInScalarType(type)) {
-    typeName = type.name as Exclude<TypeName, 'Enum' | 'CustomScalar'>;
-  } else {
-    typeName = `CustomScalar`;
+  // key is invalid (starts with numeric); normalize with leading underscore
+  if (replaced.match(/^[0-9]/)) {
+    return `_${replaced}`;
   }
-  const operators = ALLOWED_OPERATORS[typeName];
 
-  return schemaComposer.getOrCreateITC(`${type.name}QueryOperatorInput`, itc =>
-    itc.addFields(getOperatorFields(type, operators)),
-  );
+  return replaced;
 };
 
 /* 
 
 Sift uses this kind of notation
-
  "fields.firstName.value": {
     $eq: "Jimmy"
   }

@@ -17,13 +17,14 @@
 import { Logger } from 'winston';
 import { GraphQLModule } from '@graphql-modules/core';
 import { Config } from '@backstage/config';
-import { schemaComposer, InputTypeComposer } from 'graphql-compose';
+import { InputTypeComposer, schemaComposer } from 'graphql-compose';
 
 import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
-import { ObjectBuilder } from '../field-builder';
 import { fieldMerger } from '../merger/field-merger';
-import { filterToSift } from '../field-builder/filters';
-import { isNumber } from 'lodash';
+import { filterOutput, getFilterArgs } from '../graphql-tools/filters';
+import { buildObject } from '../graphql-tools';
+import { filterToSift } from '../graphql-tools/utils';
+import { isArray } from 'lodash';
 
 export interface ModuleOptions {
   logger: Logger;
@@ -42,43 +43,31 @@ export async function createModule(
 
   const mergedObj = fieldMerger(...UNSTABLE_catalogEntities);
 
-  const EntitiesBuilder = new ObjectBuilder({
+  const EntitiesOTC = buildObject({
     name: 'Entity',
     obj: mergedObj,
   });
 
-  const EntitiesTC = EntitiesBuilder.getOTC();
-
-  EntitiesTC.addResolver({
+  EntitiesOTC.addResolver({
     kind: 'query',
     name: 'findMany',
     args: {
-      filter: ObjectBuilder.getFilterArgs({
-        itc: EntitiesTC.getInputTypeComposer(),
+      filter: getFilterArgs({
+        itc: EntitiesOTC.getInputTypeComposer(),
       }),
       skip: 'Int',
       limit: 'Int',
     },
-    type: [EntitiesTC],
-    resolve: async ({ args }) => {
+    type: [EntitiesOTC],
+    resolve: async ({ args }: { args: any }) => {
       // Ideally we would convert all of this into a DB query instead of grabbing everything.
       const { entities } = await entitiesCatalog.entities();
-
-      const { filter, limit = -1, skip = 0 } = args;
-
-      const result = filter ? entities.filter(filterToSift(filter)) : entities;
-
-      if (result.length === 0) return result;
-
-      if (limit >= 0) {
-        return result.slice(skip, skip + limit);
-      }
-      return result;
+      return filterOutput({ args, arr: entities });
     },
   });
 
   schemaComposer.Query.addFields({
-    entities: EntitiesTC.getResolver('findMany'),
+    entities: EntitiesOTC.getResolver('findMany'),
   });
 
   const schema = schemaComposer.buildSchema();

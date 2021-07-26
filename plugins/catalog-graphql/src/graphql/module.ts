@@ -17,11 +17,13 @@
 import { Logger } from 'winston';
 import { GraphQLModule } from '@graphql-modules/core';
 import { Config } from '@backstage/config';
-import { schemaComposer } from 'graphql-compose';
+import { schemaComposer, InputTypeComposer } from 'graphql-compose';
 
 import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
-import { ObjectBuilder } from '../field-parser';
+import { ObjectBuilder } from '../field-builder';
 import { fieldMerger } from '../merger/field-merger';
+import { filterToSift } from '../field-builder/filters';
+import { isNumber } from 'lodash';
 
 export interface ModuleOptions {
   logger: Logger;
@@ -40,22 +42,38 @@ export async function createModule(
 
   const mergedObj = fieldMerger(...UNSTABLE_catalogEntities);
 
-  const EntitiesTC = new ObjectBuilder({
+  const EntitiesBuilder = new ObjectBuilder({
     name: 'Entity',
     obj: mergedObj,
-  }).build();
+  });
+
+  const EntitiesTC = EntitiesBuilder.getOTC();
 
   EntitiesTC.addResolver({
     kind: 'query',
     name: 'findMany',
     args: {
+      filter: ObjectBuilder.getFilterArgs({
+        itc: EntitiesTC.getInputTypeComposer(),
+      }),
       skip: 'Int',
       limit: 'Int',
     },
     type: [EntitiesTC],
-    resolve: async () => {
+    resolve: async ({ args }) => {
+      // Ideally we would convert all of this into a DB query instead of grabbing everything.
       const { entities } = await entitiesCatalog.entities();
-      return entities;
+
+      const { filter, limit = -1, skip = 0 } = args;
+
+      const result = filter ? entities.filter(filterToSift(filter)) : entities;
+
+      if (result.length === 0) return result;
+
+      if (limit >= 0) {
+        return result.slice(skip, skip + limit);
+      }
+      return result;
     },
   });
 
@@ -64,7 +82,6 @@ export async function createModule(
   });
 
   const schema = schemaComposer.buildSchema();
-
   const module = new GraphQLModule({
     extraSchemas: [schema],
     logger: options.logger as any,

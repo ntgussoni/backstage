@@ -14,4 +14,5 @@
  * limitations under the License.
  */
 
+export * from './graphql-tools/generate-plugin-types';
 export * from './graphql/module';

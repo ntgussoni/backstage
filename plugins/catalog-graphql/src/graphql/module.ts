@@ -17,14 +17,13 @@
 import { Logger } from 'winston';
 import { GraphQLModule } from '@graphql-modules/core';
 import { Config } from '@backstage/config';
-import { InputTypeComposer, schemaComposer } from 'graphql-compose';
+import { schemaComposer } from 'graphql-compose';
 
 import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
 import { fieldMerger } from '../merger/field-merger';
 import { filterOutput, getFilterArgs } from '../graphql-tools/filters';
 import { buildObject } from '../graphql-tools';
-import { filterToSift } from '../graphql-tools/utils';
-import { isArray } from 'lodash';
+import { generatePluginTypes } from '../graphql-tools/generate-plugin-types';
 
 export interface ModuleOptions {
   logger: Logger;
@@ -34,6 +33,7 @@ export interface ModuleOptions {
 export async function createModule(
   options: ModuleOptions,
   build: NextCatalogBuild,
+  pluginExports: any[],
 ): Promise<GraphQLModule> {
   const { entitiesCatalog } = build;
 
@@ -69,6 +69,8 @@ export async function createModule(
   schemaComposer.Query.addFields({
     entities: EntitiesOTC.getResolver('findMany'),
   });
+
+  await generatePluginTypes(pluginExports, schemaComposer);
 
   const schema = schemaComposer.buildSchema();
   const module = new GraphQLModule({

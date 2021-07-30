@@ -49,7 +49,7 @@ export const apis: AnyApiFactory[] = [
       GraphQLEndpoints.from([
         GraphQLEndpoints.create({
           id: 'catalog',
-          title: 'catalog',
+          title: 'Catalog',
           url: 'http://localhost:7000/api/graphql',
         }),
         GraphQLEndpoints.create({

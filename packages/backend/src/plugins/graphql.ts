@@ -22,6 +22,7 @@ import { PluginEnvironment } from '../types';
 export default async function createPlugin(
   { logger, config }: PluginEnvironment,
   build: NextCatalogBuild,
+  pluginExports: any[],
 ): Promise<Router> {
   return await createRouter(
     {
@@ -29,5 +30,6 @@ export default async function createPlugin(
       config,
     },
     build,
+    pluginExports,
   );
 }

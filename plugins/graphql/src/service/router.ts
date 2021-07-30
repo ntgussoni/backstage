@@ -32,6 +32,9 @@ const schemaPath = resolvePackagePath(
   'schema.gql',
 );
 
+function getBearerToken(header?: string): string | undefined {
+  return header?.match(/Bearer\s+(\S+)/i)?.[1];
+}
 export interface RouterOptions {
   logger: Logger;
   config: Config;
@@ -40,10 +43,15 @@ export interface RouterOptions {
 export async function createRouter(
   options: RouterOptions,
   build: NextCatalogBuild,
+  pluginExports: any[],
 ): Promise<express.Router> {
   const typeDefs = await fs.promises.readFile(schemaPath, 'utf-8');
 
-  const catalogModule = await createCatalogModule(options, build);
+  const catalogModule = await createCatalogModule(
+    options,
+    build,
+    pluginExports,
+  );
 
   const { schema } = new GraphQLModule({
     imports: [catalogModule],
@@ -52,6 +60,10 @@ export async function createRouter(
 
   const server = new ApolloServer({
     schema,
+    context: ({ req }) => {
+      const token = getBearerToken(req.headers.authorization);
+      return { token };
+    },
     logger: options.logger,
     introspection: true,
     playground: process.env.NODE_ENV === 'development',

@@ -14250,6 +14250,15 @@ graphql-compose@^9.0.1:
     graphql-type-json "0.3.2"
     object-path "0.11.5"
 
+graphql-compose@^9.0.2:
+  version "9.0.2"
+  resolved "https://registry.npmjs.org/graphql-compose/-/graphql-compose-9.0.2.tgz#f029ff1ceaec65655a847521996109ac0e0a076e"
+  integrity sha512-K6tyyoPQ/UGM2nol0avooh95UMI8DxLv7PaM4JL3ZDaTzbocrUDwzAl3UUYeBucovn9ZNntctUNU7pTrvxViMA==
+  dependencies:
+    "@types/object-path" "^0.11.0"
+    graphql-type-json "0.3.2"
+    object-path "0.11.5"
+
 graphql-config@^3.0.2, graphql-config@^3.3.0:
   version "3.3.0"
   resolved "https://registry.npmjs.org/graphql-config/-/graphql-config-3.3.0.tgz#24c3672a427cb67c0c717ca3b9d70e9f0c9e752b"

@@ -1,5 +1,21 @@
 # @backstage/plugin-kubernetes-backend
 
+## 0.3.12
+
+### Patch Changes
+
+- 7f24f4088: chore(deps): bump `@kubernetes/client-node` from 0.14.3 to 0.15.0
+- Updated dependencies
+  - @backstage/plugin-kubernetes-common@0.1.3
+
+## 0.3.11
+
+### Patch Changes
+
+- 5bd57f8f5: Support assume role on kubernetes api configuration for AWS.
+- Updated dependencies
+  - @backstage/backend-common@0.8.7
+
 ## 0.3.10
 
 ### Patch Changes

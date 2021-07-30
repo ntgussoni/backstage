@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Backstage Authors
+ * Copyright 2021 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,30 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import React from 'react';
+import { TrendLine } from '@backstage/core-components';
+import { Typography } from '@material-ui/core';
 
-import { configApiRef, useApi } from '@backstage/core-plugin-api';
-import { Header, Page } from '@backstage/core-components';
+interface TrendProps {
+  data?: number[];
+  title: string;
+  color: string;
+}
 
-type Props = {
-  children?: React.ReactNode;
-};
-
-export const CatalogLayout = ({ children }: Props) => {
-  const orgName =
-    useApi(configApiRef).getOptionalString('organization.name') ?? 'Backstage';
+export const TrendComponent = ({ data, title, color }: TrendProps) => {
+  const emptyData = [0, 0];
+  const max = Math.max(...(data ?? emptyData));
 
   return (
-    <Page themeId="home">
-      <Header
-        title={`${orgName} Catalog`}
-        subtitle={`Catalog of software components at ${orgName}`}
-        pageTitleOverride="Home"
+    <>
+      <Typography variant="overline">{title}</Typography>
+      <TrendLine
+        data={data ?? emptyData}
+        title={title}
+        max={max}
+        color={data && color}
       />
-      {children}
-    </Page>
+    </>
   );
 };
-
-export default CatalogLayout;

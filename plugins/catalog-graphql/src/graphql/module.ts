@@ -15,14 +15,15 @@
  */
 
 import { Logger } from 'winston';
-import { makeExecutableSchema } from 'apollo-server';
 import { GraphQLModule } from '@graphql-modules/core';
-import { Resolvers, CatalogQuery } from './types';
 import { Config } from '@backstage/config';
-import { CatalogClient } from '../service/client';
-import GraphQLJSON, { GraphQLJSONObject } from 'graphql-type-json';
-import { Entity } from '@backstage/catalog-model';
-import typeDefs from '../schema';
+import { schemaComposer } from 'graphql-compose';
+
+import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
+import { fieldMerger } from '../merger/field-merger';
+import { filterOutput, getFilterArgs } from '../graphql-tools/filters';
+import { buildObject } from '../graphql-tools';
+import { generatePluginTypes } from '../graphql-tools/generate-plugin-types';
 
 export interface ModuleOptions {
   logger: Logger;
@@ -31,75 +32,47 @@ export interface ModuleOptions {
 
 export async function createModule(
   options: ModuleOptions,
+  build: NextCatalogBuild,
+  pluginExports: any[],
 ): Promise<GraphQLModule> {
-  const catalogClient = new CatalogClient(
-    options.config.getString('backend.baseUrl'),
-  );
+  const { entitiesCatalog } = build;
 
-  const resolvers: Resolvers = {
-    JSON: GraphQLJSON,
-    JSONObject: GraphQLJSONObject,
-    DefaultEntitySpec: {
-      raw: rootValue => {
-        const { entity } = rootValue as { entity: Entity };
-        return entity.spec ?? null;
-      },
-    },
-    Query: {
-      catalog: () => ({} as CatalogQuery),
-    },
-    CatalogQuery: {
-      list: async () => {
-        return await catalogClient.list();
-      },
-    },
-    CatalogEntity: {
-      metadata: entity => ({ ...entity.metadata!, entity }),
-      spec: entity => ({ ...entity.spec!, entity }),
-    },
-    EntityMetadata: {
-      __resolveType: rootValue => {
-        const {
-          entity: { kind },
-        } = rootValue as { entity: Entity };
-        switch (kind) {
-          case 'Component':
-            return 'ComponentMetadata';
-          case 'Template':
-            return 'TemplateMetadata';
-          default:
-            return 'DefaultEntityMetadata';
-        }
-      },
-      annotation: (e, { name }) => e.annotations?.[name] ?? null,
-      labels: e => e.labels ?? {},
-      annotations: e => e.annotations ?? {},
-      label: (e, { name }) => e.labels?.[name] ?? null,
-    },
-    EntitySpec: {
-      __resolveType: rootValue => {
-        const {
-          entity: { kind },
-        } = rootValue as { entity: Entity };
+  const {
+    entities: UNSTABLE_catalogEntities,
+  } = await entitiesCatalog.entities();
 
-        switch (kind) {
-          case 'Component':
-            return 'ComponentEntitySpec';
-          case 'Template':
-            return 'TemplateEntitySpec';
-          default:
-            return 'DefaultEntitySpec';
-        }
-      },
-    },
-  };
+  const mergedObj = fieldMerger(...UNSTABLE_catalogEntities);
 
-  const schema = makeExecutableSchema({
-    typeDefs,
-    resolvers,
-    inheritResolversFromInterfaces: true,
+  const EntitiesOTC = buildObject({
+    name: 'Entity',
+    obj: mergedObj,
   });
 
+  EntitiesOTC.addResolver({
+    kind: 'query',
+    name: 'findMany',
+    args: {
+      filter: getFilterArgs({
+        itc: EntitiesOTC.getInputTypeComposer(),
+      }),
+      skip: 'Int',
+      limit: 'Int',
+    },
+    type: [EntitiesOTC],
+    resolve: async ({ args }: { args: any }) => {
+      // Ideally we would convert all of this into a DB query instead of grabbing everything.
+      const { entities } = await entitiesCatalog.entities();
+      return filterOutput({ args, arr: entities });
+    },
+  });
+
+  schemaComposer.Query.addFields({
+    entities: EntitiesOTC.getResolver('findMany'),
+  });
+
+  await generatePluginTypes(pluginExports, schemaComposer);
+
+  const schema = schemaComposer.buildSchema();
   const module = new GraphQLModule({
     extraSchemas: [schema],
     logger: options.logger as any,
@@ -107,3 +80,5 @@ export async function createModule(
 
   return module;
 }
+
+module.hot?.accept();

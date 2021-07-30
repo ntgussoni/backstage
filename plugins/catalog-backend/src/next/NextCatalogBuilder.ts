@@ -82,6 +82,14 @@ export type CatalogEnvironment = {
   reader: UrlReader;
 };
 
+export type NextCatalogBuild = {
+  entitiesCatalog: EntitiesCatalog;
+  locationsCatalog: LocationsCatalog;
+  locationAnalyzer: LocationAnalyzer;
+  processingEngine: CatalogProcessingEngine;
+  locationService: LocationService;
+};
+
 /**
  * A builder that helps wire up all of the component parts of the catalog.
  *
@@ -258,13 +266,8 @@ export class NextCatalogBuilder {
   /**
    * Wires up and returns all of the component parts of the catalog
    */
-  async build(): Promise<{
-    entitiesCatalog: EntitiesCatalog;
-    locationsCatalog: LocationsCatalog;
-    locationAnalyzer: LocationAnalyzer;
-    processingEngine: CatalogProcessingEngine;
-    locationService: LocationService;
-  }> {
+
+  async build(): Promise<NextCatalogBuild> {
     const { config, database, logger } = this.env;
 
     const policy = this.buildEntityPolicy();

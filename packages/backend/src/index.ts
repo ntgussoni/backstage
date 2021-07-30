@@ -105,18 +105,22 @@ async function main() {
   const jenkinsEnv = useHotMemoize(module, () => createEnv('jenkins'));
 
   const apiRouter = Router();
-  apiRouter.use('/catalog', await catalog(catalogEnv));
+  // TODO: Not sure this is the best thing ever.
+  const { build, route: catalogRoute } = await catalog(catalogEnv);
+
+  apiRouter.use('/catalog', catalogRoute);
   apiRouter.use('/code-coverage', await codeCoverage(codeCoverageEnv));
   apiRouter.use('/rollbar', await rollbar(rollbarEnv));
   apiRouter.use('/scaffolder', await scaffolder(scaffolderEnv));
   apiRouter.use('/auth', await auth(authEnv));
   apiRouter.use('/search', await search(searchEnv));
   apiRouter.use('/techdocs', await techdocs(techdocsEnv));
-  apiRouter.use('/todo', await todo(todoEnv));
+  const { graphql: todoGraphql, router } = await todo(todoEnv);
+  apiRouter.use('/todo', router);
   apiRouter.use('/kubernetes', await kubernetes(kubernetesEnv));
   apiRouter.use('/kafka', await kafka(kafkaEnv));
   apiRouter.use('/proxy', await proxy(proxyEnv));
-  apiRouter.use('/graphql', await graphql(graphqlEnv));
+  apiRouter.use('/graphql', await graphql(graphqlEnv, build, [todoGraphql]));
   apiRouter.use('/badges', await badges(badgesEnv));
   apiRouter.use('/jenkins', await jenkins(jenkinsEnv));
   apiRouter.use(notFoundHandler());

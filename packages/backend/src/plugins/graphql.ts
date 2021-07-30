@@ -16,14 +16,20 @@
 
 import { createRouter } from '@backstage/plugin-graphql-backend';
 import { Router } from 'express';
+import { NextCatalogBuild } from '@backstage/plugin-catalog-backend';
 import { PluginEnvironment } from '../types';
 
-export default async function createPlugin({
-  logger,
-  config,
-}: PluginEnvironment): Promise<Router> {
-  return await createRouter({
-    logger,
-    config,
-  });
+export default async function createPlugin(
+  { logger, config }: PluginEnvironment,
+  build: NextCatalogBuild,
+  pluginExports: any[],
+): Promise<Router> {
+  return await createRouter(
+    {
+      logger,
+      config,
+    },
+    build,
+    pluginExports,
+  );
 }
